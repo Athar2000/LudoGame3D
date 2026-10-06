@@ -1,0 +1,64 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "users": {
+      "$comment_index": "Required for LeaderboardRepository's orderByChild('wins') query to work efficiently at scale — without this, Firebase logs a warning and falls back to an unindexed scan.",
+      ".indexOn": ["wins"],
+      "$uid": {
+        "$comment": "No blanket '.write' at this level, deliberately: RTDB rules cascade permissively downward, so a parent '.write: true' would grant write access to EVERY child including coins/wins/xp/level, no matter what those children's own rules say. Only the specific cosmetic fields below get a '.write' rule at all; coins/level/xp/wins/gamesPlayed/lastDailyRewardClaimed*/ownedItems have none, so they fall through to root's default '.write: false' and are reachable only by Cloud Functions (initializeUserProfile, claimDailyReward, purchaseItem, and the stats update inside submitMove) running with the Admin SDK.",
+        ".read": "auth != null",
+
+        "name": { ".write": "auth != null && auth.uid === $uid", ".validate": "newData.isString() && newData.val().length <= 40" },
+        "avatarId": { ".write": "auth != null && auth.uid === $uid" },
+        "favoriteColor": { ".write": "auth != null && auth.uid === $uid" }
+      }
+    },
+
+    "rooms": {
+      "$roomId": {
+        "$comment": "Private rooms are protected by their unguessable code (e.g. ATHAR4587), not by pre-join membership — a joiner must be able to read a room's metadata (status/maxPlayers/players) BEFORE their own player node exists, to decide whether joining is even possible (room full? already started?). Any authenticated user who has the code can read the room; nobody can read the *list* of all rooms (no rules exist for rooms with a wildcard read at the top level), so codes can't be enumerated.",
+        ".read": "auth != null",
+
+        "hostId": {
+          ".write": "auth != null && (!data.parent().exists() || data.parent().child('hostId').val() === auth.uid)"
+        },
+        "status": {
+          ".write": "auth != null && data.parent().child('hostId').val() === auth.uid"
+        },
+        "maxPlayers": { ".write": "auth != null && !data.parent().exists()" },
+        "isPrivate": { ".write": "auth != null && !data.parent().exists()" },
+        "createdAt": { ".write": "auth != null && !data.parent().exists()" },
+
+        "players": {
+          "$playerId": {
+            "$comment": "The room-full/already-started checks in FirebaseRoomRepository.joinRoom() run inside a client transaction, which a malicious client could skip by writing straight to this path — so the same capacity check is re-enforced here at the rules layer using root.child() lookups, independent of the app's own code.",
+            ".write": "auth != null && auth.uid === $playerId && (root.child('rooms/' + $roomId + '/players/' + $playerId).exists() || root.child('rooms/' + $roomId + '/players').numChildren() < root.child('rooms/' + $roomId + '/maxPlayers').val())",
+            ".validate": "newData.hasChildren(['name', 'color'])"
+          }
+        },
+
+        "gameState": {
+          "$comment": "PHASE 6: gameState is now Cloud-Function-only. The six callable functions in functions/src/index.ts (startGame, rollDice, submitMove, forceSkipExpiredTurn, leaveGame, requestRematch) use the Admin SDK, which bypasses these rules entirely — that is the actual mechanism that makes this server-authoritative rather than merely client-side-validated-and-hoped-for. A modified client APK can no longer write a fabricated gameState directly to Realtime Database; every write to this path MUST go through one of those functions, each of which re-derives the legal move/turn/timer state from LudoGameEngine (the TypeScript port in functions/src/ludoEngine.ts, kept in lockstep with the Kotlin client engine) before writing anything.",
+          ".write": false
+        },
+
+        "chat": {
+          "$comment": "Basic spam protection per section 13: messages are immutable once created (no edits/deletes, so no way to spam-edit a single message into new content), capped at 200 chars, and 'sentAt' must equal the server's own request time (RTDB's special 'now' variable) rather than a client-supplied value — this stops a modified client from backdating messages to make them look like they arrived faster than physically possible. A minimum-interval-between-sends throttle is enforced client-side (ChatViewModel); a fully server-side rate limit would need a Cloud Function tracking each sender's last message time, which is a reasonable Phase 9+ hardening step if chat abuse becomes a real problem.",
+          "$messageId": {
+            ".write": "auth != null && !data.exists() && newData.child('senderId').val() === auth.uid && root.child('rooms/' + $roomId + '/players/' + auth.uid).exists()",
+            ".validate": "newData.child('text').val().length <= 200 && newData.child('sentAt').val() === now"
+          }
+        }
+      }
+    },
+
+    "matchmakingQueue": {
+      "$playerId": {
+        ".read": "auth != null",
+        ".write": "auth != null && auth.uid === $playerId"
+      }
+    }
+  }
+}

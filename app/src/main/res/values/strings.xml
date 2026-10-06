@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Added by Athar -->
+<resources>
+    <string name="app_name">Ludo 3D</string>
+
+    <!--
+      REQUIRED FOR GOOGLE SIGN-IN:
+      Firebase Console -> Authentication -> Sign-in method -> Google -> copy the
+      "Web client ID" (NOT the Android client ID) and paste it here.
+      Without this, email/password and guest login still work; only the
+      Google button will fail with a clear error until this is set.
+    -->
+    <string name="default_web_client_id" translatable="false">REPLACE_WITH_YOUR_FIREBASE_WEB_CLIENT_ID</string>
+</resources>

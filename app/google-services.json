@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "541014657865",
+    "project_id": "ludo3-580fa",
+    "storage_bucket": "ludo3-580fa.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:541014657865:android:9f354890483aca29dea898",
+        "android_client_info": {
+          "package_name": "com.athar.ludo3d"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCnLFhvQGx0PDqRCdocJE5n2TnnwbpChig"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

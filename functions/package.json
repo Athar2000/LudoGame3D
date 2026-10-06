@@ -1,0 +1,27 @@
+{
+  "name": "ludo3d-functions",
+  "version": "1.0.0",
+  "description": "Server-authoritative Ludo move validation (Phase 6) - same rules as the Kotlin LudoGameEngine, running with the Firebase Admin SDK so clients cannot bypass it.",
+  "main": "lib/index.js",
+  "engines": {
+    "node": "20"
+  },
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "test": "npm run build && node lib/ludoEngine.smoke.js",
+    "serve": "npm run build && firebase emulators:start --only functions",
+    "deploy": "firebase deploy --only functions",
+    "test:rules": "firebase emulators:exec --only database --project demo-ludo3d \"node --test test/database.rules.test.js\""
+  },
+  "dependencies": {
+    "firebase-admin": "^12.3.1",
+    "firebase-functions": "^5.0.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5",
+    "@firebase/rules-unit-testing": "^3.0.4",
+    "firebase-tools": "^13.35.1"
+  },
+  "private": true
+}
